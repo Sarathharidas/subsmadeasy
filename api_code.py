@@ -79,7 +79,7 @@ def youtube_link():
 def whisper_api(audio_wav_path, video_folder_path, language):
   url = "https://transcribe.whisperapi.com"
   headers = {
-'Authorization': 'Bearer GLA2TKCWBN41E3H2Q15KKTXEXCQEF7SK'  
+'Authorization': 'Bearer __________'  
 }
   file = {'file': open(audio_wav_path, 'rb')}
   data = {
