@@ -1,15 +1,16 @@
 from flask import Flask, request, send_file
-import os
+import os, glob
 from werkzeug.utils import secure_filename
 import subprocess
 import requests
 from datetime import timedelta
 from flask import jsonify
 app = Flask(__name__)
+from pytube import YouTube
+
 
 @app.route("/upload", methods=["POST"])
 def upload():
-
     if 'file' not in request.files:
         return jsonify({'error': 'No file provided'}), 400
     file = request.files['file']
@@ -36,6 +37,44 @@ def upload():
     os.remove(wav_file_path)
     #return {'file_path':video_file_path_full,' wav_file_path':wav_file_path }
     return send_file(srtFilename, as_attachment=True)
+
+
+
+@app.route("/youtube_link", methods=["POST"])
+def youtube_link():
+    if 'youtube_link' not in request.form:
+        return jsonify({'error': 'No Youtube Link provided'}), 400
+    youtube_link = request.form['youtube_link']
+
+    try:
+      yt = YouTube(str(youtube_link))
+    except:
+      print("returning initially")
+      return jsonify({'error': 'Wrong Youtube Link provided'}), 400
+    video_file_only_name = str(youtube_link)[-5:]
+    print(video_file_only_name)
+    video_folder_path = os.path.join(os.getcwd(), video_file_only_name)
+    print(video_folder_path)
+    if not os.path.exists(video_folder_path):
+      os.makedirs(video_folder_path)
+    yt.streams.filter(only_audio=True, subtype='webm', abr='160kbps').first().download(video_folder_path)
+    os.chdir(video_folder_path)
+    for file in glob.glob("*.webm"):
+      audio_file_path = os.path.join(os.getcwd(), file)
+      print(audio_file_path) 
+
+    if 'language' not in request.form:
+      return jsonify({'error': 'No language provided'}), 400
+    language = request.form['language']
+
+        # redirect the user to the uploaded file's URL
+    
+    srtFilename = whisper_api(audio_file_path, video_folder_path, language)
+  
+    os.remove(audio_file_path)
+    #return {'file_path':video_file_path_full,' wav_file_path':wav_file_path }
+    return send_file(srtFilename, as_attachment=True)
+
 
 def whisper_api(audio_wav_path, video_folder_path, language):
   url = "https://transcribe.whisperapi.com"
@@ -86,5 +125,3 @@ def filesize():
 
 if __name__ == "__main__":
     app.run(debug=True)
-
-
